@@ -15,23 +15,33 @@
  */
 package com.example.android.pets;
 
+import android.content.ContentValues;
 import android.content.Intent;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AppCompatActivity;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.TextView;
+
+import com.example.android.pets.data.PetContract;
+import com.example.android.pets.data.PetsDbHelper;
 
 /**
  * Displays list of pets that were entered and stored in the app.
  */
 public class CatalogActivity extends AppCompatActivity {
+    private PetsDbHelper mDbHelper;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_catalog);
+        // Initialize the database helper.
+        mDbHelper = new PetsDbHelper(this);
 
         // Setup FAB to open EditorActivity
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
@@ -42,6 +52,82 @@ public class CatalogActivity extends AppCompatActivity {
                 startActivity(intent);
             }
         });
+
+        displayDatabaseInfo();
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        displayDatabaseInfo();
+    }
+
+    /**
+     * Temporary helper method to display information in the onscreen TextView about the state of
+     * the pets database.
+     */
+    private void displayDatabaseInfo() {
+        // To access our database, we instantiate our subclass of SQLiteOpenHelper
+        // and pass the context, which is the current activity.
+        PetsDbHelper mDbHelper = new PetsDbHelper(this);
+        // Create and/or open a database to read from it
+        SQLiteDatabase db = mDbHelper.getReadableDatabase();
+        // Define a projection that specifies which columns from the database
+        // you will actually use after this query.
+        String[] projection = {
+                PetContract.PetSchema._ID,
+                PetContract.PetSchema.COLUMN_NAME,
+                PetContract.PetSchema.COLUMN_BREED,
+                PetContract.PetSchema.COLUMN_GENDER,
+                PetContract.PetSchema.COLUMN_WEIGHT
+                };
+        // Filter results WHERE pet weight less than 30 kg.
+        String selection = PetContract.PetSchema.COLUMN_WEIGHT + " <= 30";
+        //String[] selectionArgs = { "< 30" };
+
+        // Perform this SQL query "SELECT * FROM pets"
+        // to get a Cursor that contains all rows from the pets table.
+        Cursor cursor = db.query(
+                PetContract.PetSchema.TABLE_NAME,  //table to query
+                projection,  //columns to include
+                selection,  //WHERE clause columns
+                null, //WHERE clause value
+                null, null, null  //no filters or sort options
+        );
+        // Lets build a string from our cursor data
+        String cursorString = "_ID   NAME   BREED   GENDER   WEIGHT\n===   ====   =====   ======   =====";
+
+        try {
+            // Display the number of rows in the Cursor (which reflects the number of rows in the
+            // pets table in the database).
+            TextView displayView = (TextView) findViewById(R.id.text_view_pet);
+            displayView.setText("Number of rows in pets database table: " + cursor.getCount()
+                    + "\n\n" + cursorString);
+            // Display each row of pet data in the cursor
+            while (cursor.moveToNext()) {
+                cursorString = cursor.getInt(0) + " | " + cursor.getString(1)
+                        + " | " + cursor.getString(2) + " | " + cursor.getInt(3)
+                        + " | " + cursor.getInt(4) + "Kg";
+                displayView.append("\n" + cursorString);
+            }
+        } finally {
+            // Always close the cursor when you're done reading from it. This releases all its
+            // resources and makes it invalid.
+            cursor.close();
+        }
+    }
+
+    private void insertPet() {
+        // Setup and input Value Key pairs for the pet data.
+        ContentValues value = new ContentValues();
+        value.put(PetContract.PetSchema.COLUMN_NAME, "Terry");
+        value.put(PetContract.PetSchema.COLUMN_BREED, "Terrier");
+        value.put(PetContract.PetSchema.COLUMN_GENDER, PetContract.PetSchema.GENDER_FEMALE);
+        value.put(PetContract.PetSchema.COLUMN_WEIGHT, 11);
+        // Open our SQL database for write operations.
+        SQLiteDatabase db = mDbHelper.getWritableDatabase();
+        long newRowId = db.insert(PetContract.PetSchema.TABLE_NAME, null, value);
+        displayDatabaseInfo();
     }
 
     @Override
@@ -58,7 +144,8 @@ public class CatalogActivity extends AppCompatActivity {
         switch (item.getItemId()) {
             // Respond to a click on the "Insert dummy data" menu option
             case R.id.action_insert_dummy_data:
-                // Do nothing for now
+                // Insert dummy data for a new pet into database.
+                insertPet();
                 return true;
             // Respond to a click on the "Delete all entries" menu option
             case R.id.action_delete_all_entries:
