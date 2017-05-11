@@ -16,7 +16,7 @@
 package com.example.android.pets;
 
 import android.content.ContentValues;
-import android.database.sqlite.SQLiteDatabase;
+import android.net.Uri;
 import android.os.Bundle;
 import android.support.v4.app.NavUtils;
 import android.support.v7.app.AppCompatActivity;
@@ -74,25 +74,54 @@ public class EditorActivity extends AppCompatActivity {
     * Method to insert the pet data as entered by user in the edit text views.
      */
     private void insertPetData() {
+        // First, validate editText entries.
+        if (!validPetData ()) { //sonething is wrong with user entries.
+            return; // bail out!
+        }
         // Setup and input Value Key pairs for the pet data.
-        ContentValues value = new ContentValues();
-        value.put(PetContract.PetSchema.COLUMN_NAME, mNameEditText.getText().toString().trim());
-        value.put(PetContract.PetSchema.COLUMN_BREED, mBreedEditText.getText().toString().trim());
-        value.put(PetContract.PetSchema.COLUMN_GENDER, mGender);
-        value.put(PetContract.PetSchema.COLUMN_WEIGHT, Integer.parseInt(mWeightEditText.getText().toString().trim()));
-        // Open our SQL database for write operations.
-        SQLiteDatabase db = mDbHelper.getWritableDatabase();
-        long newRowId = db.insert(PetContract.PetSchema.TABLE_NAME, null, value);
-        if (newRowId == -1) { // Something went wrong
-            Toast.makeText(this, "Error adding new pet to table.", Toast.LENGTH_SHORT).show();
+        ContentValues values = new ContentValues();
+        values.put(PetContract.PetSchema.COLUMN_NAME, mNameEditText.getText().toString().trim());
+        values.put(PetContract.PetSchema.COLUMN_BREED, mBreedEditText.getText().toString().trim());
+        values.put(PetContract.PetSchema.COLUMN_GENDER, mGender);
+        try {
+            values.put(PetContract.PetSchema.COLUMN_WEIGHT, Integer.parseInt(mWeightEditText.getText().toString().trim()));
+        } catch (NumberFormatException ex) { // Value in Weight edit text is not a valid integer
+            values.put(PetSchema.COLUMN_WEIGHT, 0);
+        }
+        // Call content provider insert method.
+        Uri uri = getContentResolver().insert(PetSchema.CONTENT_URI, values);
+        int newRowId = Integer.parseInt(uri.getLastPathSegment());
+        if (uri == null || newRowId == -1) { // Something went wrong
+            Toast.makeText(this, getString(R.string.error_adding_pet), Toast.LENGTH_SHORT).show();
         } else { // No problems.
-            Toast.makeText(this, "New pet added at Row: " + newRowId, Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, getString(R.string.new_pet_added) + newRowId, Toast.LENGTH_SHORT).show();
             // Also, clear the edit text entries to allow for another entry.
             mNameEditText.setText("");
             mBreedEditText.setText("");
             mWeightEditText.setText("");
             mGenderSpinner.setSelection(0);
         }
+    }
+
+    private boolean validPetData () {
+        // make sure pet data entered in editTexts is valid.
+        if (mNameEditText.getText().toString().trim().length() == 0) {
+            Toast.makeText(this, "Pet name required!", Toast.LENGTH_SHORT).show();
+            return false;
+        }
+        if (mBreedEditText.getText().toString().trim().length() == 0) {
+            Toast.makeText(this, "Pet breed required!", Toast.LENGTH_SHORT).show();
+            return false;
+        }
+        if (mWeightEditText.getText().toString().trim().length() == 0) {
+            Toast.makeText(this, "Pet weight required!", Toast.LENGTH_SHORT).show();
+            return false;
+        }
+        if (Integer.parseInt(mWeightEditText.getText().toString().trim()) > 100) {
+            Toast.makeText(this, "Maximum weight exceeded.", Toast.LENGTH_SHORT).show();
+            return false;
+        }
+        return true;
     }
 
     /**

@@ -15,10 +15,11 @@
  */
 package com.example.android.pets;
 
+import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.Intent;
 import android.database.Cursor;
-import android.database.sqlite.SQLiteDatabase;
+import android.net.Uri;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AppCompatActivity;
@@ -26,6 +27,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.example.android.pets.data.PetContract;
 import com.example.android.pets.data.PetsDbHelper;
@@ -53,6 +55,16 @@ public class CatalogActivity extends AppCompatActivity {
             }
         });
 
+        // Setup and input Value Key pairs to test update/delete.
+        ContentValues values = new ContentValues();
+        values.put(PetContract.PetSchema.COLUMN_NAME, "Scotia"); //change name
+        values.put(PetContract.PetSchema.COLUMN_BREED, "Scottish Terrier");
+        String selection = PetContract.PetSchema.COLUMN_NAME + "=? AND " + "breed=?";
+        String [] selectionArgs = {"Terry", "Terrier"};
+        Uri uri = PetContract.PetSchema.CONTENT_URI;
+        uri = ContentUris.withAppendedId(uri, 8);
+        getContentResolver().update(uri, values, selection, selectionArgs);
+
         displayDatabaseInfo();
     }
 
@@ -67,11 +79,7 @@ public class CatalogActivity extends AppCompatActivity {
      * the pets database.
      */
     private void displayDatabaseInfo() {
-        // To access our database, we instantiate our subclass of SQLiteOpenHelper
-        // and pass the context, which is the current activity.
-        PetsDbHelper mDbHelper = new PetsDbHelper(this);
-        // Create and/or open a database to read from it
-        SQLiteDatabase db = mDbHelper.getReadableDatabase();
+
         // Define a projection that specifies which columns from the database
         // you will actually use after this query.
         String[] projection = {
@@ -82,17 +90,17 @@ public class CatalogActivity extends AppCompatActivity {
                 PetContract.PetSchema.COLUMN_WEIGHT
                 };
         // Filter results WHERE pet weight less than 30 kg.
-        String selection = PetContract.PetSchema.COLUMN_WEIGHT + " <= 30";
-        //String[] selectionArgs = { "< 30" };
+        // String selection = PetContract.PetSchema.COLUMN_WEIGHT + " <= 30";
+        // String[] selectionArgs = { "< 30" };
 
         // Perform this SQL query "SELECT * FROM pets"
         // to get a Cursor that contains all rows from the pets table.
-        Cursor cursor = db.query(
-                PetContract.PetSchema.TABLE_NAME,  //table to query
+        Cursor cursor = getContentResolver().query(
+                PetContract.PetSchema.CONTENT_URI,  //table to query
                 projection,  //columns to include
-                selection,  //WHERE clause columns
+                null,  //WHERE clause columns
                 null, //WHERE clause value
-                null, null, null  //no filters or sort options
+                null  //no filters or sort options
         );
         // Lets build a string from our cursor data
         String cursorString = "_ID   NAME   BREED   GENDER   WEIGHT\n===   ====   =====   ======   =====";
@@ -119,15 +127,20 @@ public class CatalogActivity extends AppCompatActivity {
 
     private void insertPet() {
         // Setup and input Value Key pairs for the pet data.
-        ContentValues value = new ContentValues();
-        value.put(PetContract.PetSchema.COLUMN_NAME, "Terry");
-        value.put(PetContract.PetSchema.COLUMN_BREED, "Terrier");
-        value.put(PetContract.PetSchema.COLUMN_GENDER, PetContract.PetSchema.GENDER_FEMALE);
-        value.put(PetContract.PetSchema.COLUMN_WEIGHT, 11);
-        // Open our SQL database for write operations.
-        SQLiteDatabase db = mDbHelper.getWritableDatabase();
-        long newRowId = db.insert(PetContract.PetSchema.TABLE_NAME, null, value);
-        displayDatabaseInfo();
+        ContentValues values = new ContentValues();
+        values.put(PetContract.PetSchema.COLUMN_NAME, "Terry");
+        values.put(PetContract.PetSchema.COLUMN_BREED, "Terrier");
+        values.put(PetContract.PetSchema.COLUMN_GENDER, PetContract.PetSchema.GENDER_FEMALE);
+        values.put(PetContract.PetSchema.COLUMN_WEIGHT, 11);
+        // Call content provider insert method.
+        Uri uri = getContentResolver().insert(PetContract.PetSchema.CONTENT_URI, values);
+        int newRowId = Integer.parseInt(uri.getLastPathSegment());
+        if (uri == null || newRowId == -1) { // Something went wrong
+            Toast.makeText(this, getString(R.string.error_adding_pet), Toast.LENGTH_SHORT).show();
+        } else { // No problems.
+            Toast.makeText(this, getString(R.string.new_pet_added) + newRowId, Toast.LENGTH_SHORT).show();
+        }
+            displayDatabaseInfo();
     }
 
     @Override
