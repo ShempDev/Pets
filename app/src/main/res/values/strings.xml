@@ -46,6 +46,27 @@
     <string name="gender_female">Female</string>
 
     <!-- Strings for user messages -->
-    <string name="error_adding_pet">Error adding new pet to table.</string>
+    <string name="error_adding_pet">Error performing selected action.</string>
     <string name="new_pet_added">New pet added at Row: </string>
+    <string name="pet_updated">Information updated for pet with id = </string>
+    <string name="pet_deleted">Pet deleted from database with id = </string>
+    <string name="cannot_delete">Cannot delete while in insert mode.\n
+    Please return to main activity and select pet for deletion.</string>
+    <string name="name_required">Pet\'s name is a required field!</string>
+    <string name="breed_required">Pet\'s breed is a required field!</string>
+    <string name="max_weight">Maximum weight exceeded! \nPet bears are not allowed.</string>
+    <!-- Dialog message when user is leaving editor but hasn't saved changes [CHAR LIMIT=NONE] -->
+    <string name="unsaved_changes_dialog_msg">Discard your changes and quit editing?</string>
+    <!-- Dialog button text for the option to discard a user's changes [CHAR LIMIT=20] -->
+    <string name="discard">Discard</string>
+    <!-- Dialog button text for the option to keep editing the current pet [CHAR LIMIT=20] -->
+    <string name="keep_editing">Keep Editing</string>
+
+    <!-- Strings for editor activity modes -->
+    <string name="insert_mode">Add new pet</string>
+    <string name="update_mode">Edit selected pet</string>
+
+    <!-- Text for the empty view, which describes the image and prompts to add pet [CHAR LIMIT=50] -->
+    <string name="empty_view_title_text">It\'s a bit lonely here...</string>
+    <string name="empty_view_subtitle_text">Get started by adding a pet</string>
 </resources>

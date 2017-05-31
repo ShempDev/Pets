@@ -15,9 +15,12 @@
  */
 package com.example.android.pets;
 
+import android.app.LoaderManager;
 import android.content.ContentUris;
 import android.content.ContentValues;
+import android.content.CursorLoader;
 import android.content.Intent;
+import android.content.Loader;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
@@ -26,7 +29,8 @@ import android.support.v7.app.AppCompatActivity;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.widget.TextView;
+import android.widget.AdapterView;
+import android.widget.ListView;
 import android.widget.Toast;
 
 import com.example.android.pets.data.PetContract;
@@ -35,8 +39,9 @@ import com.example.android.pets.data.PetsDbHelper;
 /**
  * Displays list of pets that were entered and stored in the app.
  */
-public class CatalogActivity extends AppCompatActivity {
+public class CatalogActivity extends AppCompatActivity implements LoaderManager.LoaderCallbacks<Cursor> {
     private PetsDbHelper mDbHelper;
+    private PetsCursorAdapter mAdapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -45,7 +50,7 @@ public class CatalogActivity extends AppCompatActivity {
         // Initialize the database helper.
         mDbHelper = new PetsDbHelper(this);
 
-        // Setup FAB to open EditorActivity
+        // Setup FAB to open EditorActivity in insert mode.
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -55,74 +60,29 @@ public class CatalogActivity extends AppCompatActivity {
             }
         });
 
-        // Setup and input Value Key pairs to test update/delete.
-        ContentValues values = new ContentValues();
-        values.put(PetContract.PetSchema.COLUMN_NAME, "Scotia"); //change name
-        values.put(PetContract.PetSchema.COLUMN_BREED, "Scottish Terrier");
-        String selection = PetContract.PetSchema.COLUMN_NAME + "=? AND " + "breed=?";
-        String [] selectionArgs = {"Terry", "Terrier"};
-        Uri uri = PetContract.PetSchema.CONTENT_URI;
-        uri = ContentUris.withAppendedId(uri, 8);
-        getContentResolver().update(uri, values, selection, selectionArgs);
+        // Get the listview and set the cursorAdapter on the view.
+        ListView listView = (ListView) findViewById(R.id.list_view);
+        View emptyView = findViewById(R.id.empty_view); // get our empty view
+        listView.setEmptyView(emptyView); // display empty view if listView is empty.
+        mAdapter = new PetsCursorAdapter(this, null); // empty adapter
+        listView.setAdapter(mAdapter);
 
-        displayDatabaseInfo();
-    }
-
-    @Override
-    protected void onStart() {
-        super.onStart();
-        displayDatabaseInfo();
-    }
-
-    /**
-     * Temporary helper method to display information in the onscreen TextView about the state of
-     * the pets database.
-     */
-    private void displayDatabaseInfo() {
-
-        // Define a projection that specifies which columns from the database
-        // you will actually use after this query.
-        String[] projection = {
-                PetContract.PetSchema._ID,
-                PetContract.PetSchema.COLUMN_NAME,
-                PetContract.PetSchema.COLUMN_BREED,
-                PetContract.PetSchema.COLUMN_GENDER,
-                PetContract.PetSchema.COLUMN_WEIGHT
-                };
-        // Filter results WHERE pet weight less than 30 kg.
-        // String selection = PetContract.PetSchema.COLUMN_WEIGHT + " <= 30";
-        // String[] selectionArgs = { "< 30" };
-
-        // Perform this SQL query "SELECT * FROM pets"
-        // to get a Cursor that contains all rows from the pets table.
-        Cursor cursor = getContentResolver().query(
-                PetContract.PetSchema.CONTENT_URI,  //table to query
-                projection,  //columns to include
-                null,  //WHERE clause columns
-                null, //WHERE clause value
-                null  //no filters or sort options
-        );
-        // Lets build a string from our cursor data
-        String cursorString = "_ID   NAME   BREED   GENDER   WEIGHT\n===   ====   =====   ======   =====";
-
-        try {
-            // Display the number of rows in the Cursor (which reflects the number of rows in the
-            // pets table in the database).
-            TextView displayView = (TextView) findViewById(R.id.text_view_pet);
-            displayView.setText("Number of rows in pets database table: " + cursor.getCount()
-                    + "\n\n" + cursorString);
-            // Display each row of pet data in the cursor
-            while (cursor.moveToNext()) {
-                cursorString = cursor.getInt(0) + " | " + cursor.getString(1)
-                        + " | " + cursor.getString(2) + " | " + cursor.getInt(3)
-                        + " | " + cursor.getInt(4) + "Kg";
-                displayView.append("\n" + cursorString);
+        // Setup a click listener for the listview items to open EditorActivity in edit mode.
+        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                Intent intent = new Intent(CatalogActivity.this, EditorActivity.class);
+                // Send uri with item _ID selected to the EditorActivity.
+                Uri uri = ContentUris.withAppendedId(PetContract.PetSchema.CONTENT_URI, id);
+                intent.setData(uri);
+                //intent.putExtra("petsUri", uri.toString());
+                startActivity(intent);
             }
-        } finally {
-            // Always close the cursor when you're done reading from it. This releases all its
-            // resources and makes it invalid.
-            cursor.close();
-        }
+        });
+        // Initialize the cursor loader for the adapter
+        getLoaderManager().initLoader(0, null, this);
+
+
     }
 
     private void insertPet() {
@@ -139,8 +99,8 @@ public class CatalogActivity extends AppCompatActivity {
             Toast.makeText(this, getString(R.string.error_adding_pet), Toast.LENGTH_SHORT).show();
         } else { // No problems.
             Toast.makeText(this, getString(R.string.new_pet_added) + newRowId, Toast.LENGTH_SHORT).show();
+            getContentResolver().notifyChange(uri, null);
         }
-            displayDatabaseInfo();
     }
 
     @Override
@@ -166,5 +126,41 @@ public class CatalogActivity extends AppCompatActivity {
                 return true;
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    protected void onDestroy() {
+
+        super.onDestroy();
+    }
+
+    @Override
+    public Loader<Cursor> onCreateLoader(int id, Bundle args) {
+        // Define a projection that specifies which columns from the database
+        // you will actually use after this query.
+        String[] projection = {
+                PetContract.PetSchema._ID,
+                PetContract.PetSchema.COLUMN_NAME,
+                PetContract.PetSchema.COLUMN_BREED,
+                //PetContract.PetSchema.COLUMN_GENDER,
+                //PetContract.PetSchema.COLUMN_WEIGHT
+        };
+        // Filter results WHERE pet weight less than 30 kg.
+        // String selection = PetContract.PetSchema.COLUMN_WEIGHT + " <= 30";
+        // String[] selectionArgs = { "< 30" };
+
+        return new CursorLoader(this, PetContract.PetSchema.CONTENT_URI, projection, null, null, null);
+    }
+
+    @Override
+    public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
+        // Update the cursor data once the Loader is finished.
+        mAdapter.swapCursor(data);
+    }
+
+    @Override
+    public void onLoaderReset(Loader<Cursor> loader) {
+        // Clear the cursor data when no longer valid.
+        mAdapter.swapCursor(null);
     }
 }
