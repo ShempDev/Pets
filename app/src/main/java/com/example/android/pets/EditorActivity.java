@@ -128,6 +128,8 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
                 mBreedEditText.setText("");
                 mWeightEditText.setText("");
                 mGenderSpinner.setSelection(0);
+                // Clear the mPetChanged boolean from the input touch.
+                mPetChanged = false;
             }
         } else { // Call content provider update method for selected pet _ID.
             String selection = PetSchema._ID + "=?";
@@ -137,7 +139,7 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
                 Toast.makeText(this, getString(R.string.error_adding_pet), Toast.LENGTH_SHORT).show();
             } else { // No problems.
                 Toast.makeText(this, getString(R.string.pet_updated) + selectionArgs[0], Toast.LENGTH_SHORT).show();
-                // Also, exit this activity and return to previous.
+                // Also, exit this activity and return to previous. Cannot add another in this mode.
                 finish();
             }
         }
@@ -152,7 +154,7 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
             String selection = PetSchema._ID + "=?";
             String[] selectionArgs = { mPetUri.getLastPathSegment() };
             newRowId = getContentResolver().delete(PetSchema.CONTENT_URI, selection, selectionArgs);
-            if (newRowId == -1) { // Something went wrong
+            if (newRowId == -1) { // Something went wrong during delete
                 Toast.makeText(this, getString(R.string.error_adding_pet), Toast.LENGTH_SHORT).show();
             } else { // No problems.
                 Toast.makeText(this, getString(R.string.pet_deleted) + selectionArgs[0], Toast.LENGTH_SHORT).show();
@@ -164,15 +166,38 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
         }
     }
 
+    // This method pops up an alert to warn/verify user that ALL pet data will be deleted.
+    private void showDeletePetDialog () {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle(R.string.warning);
+        builder.setMessage(R.string.delete_pets_warning);
+        builder.setPositiveButton(R.string.delete, new DialogInterface.OnClickListener() {
+            public void onClick (DialogInterface dialog, int id) {
+                // User verified action to delete ALL pet data.
+                deletePetData();
+                if (dialog != null) {
+                    dialog.dismiss();
+                }
+            }
+        });
+        builder.setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() {
+            public void onClick (DialogInterface dialog, int id) {
+                // User clicked to cancel so just quit dialog and stay in activity.
+                if (dialog != null) {
+                    dialog.dismiss();
+                }
+            }
+        });
+        //Create and show the dialog box.
+        AlertDialog alertDialog = builder.create();
+        alertDialog.show();
+    }
+
     // This method performs checks to make sure inputs contain valid data.
     private boolean validPetData () {
         // make sure name and breed are not blank.
         if (TextUtils.isEmpty(mNameEditText.getText())) {
             Toast.makeText(this, getString(R.string.name_required), Toast.LENGTH_SHORT).show();
-            return false;
-        }
-        if (TextUtils.isEmpty(mBreedEditText.getText())) {
-            Toast.makeText(this, getString(R.string.breed_required), Toast.LENGTH_SHORT).show();
             return false;
         }
         if (TextUtils.isEmpty(mWeightEditText.getText())) {
@@ -280,6 +305,9 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
         // Inflate the menu options from the res/menu/menu_editor.xml file.
         // This adds menu items to the app bar.
         getMenuInflater().inflate(R.menu.menu_editor, menu);
+        if (MODE == INSERT) {
+            menu.removeItem(R.id.action_delete);
+        }
         return true;
     }
 
@@ -295,7 +323,7 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
             // Respond to a click on the "Delete" menu option
             case R.id.action_delete:
                 // Delete selected pet data.
-                deletePetData();
+                showDeletePetDialog();
                 return true;
             // Respond to a click on the "Up" arrow button in the app bar
             case android.R.id.home:

@@ -53,7 +53,7 @@
     <string name="cannot_delete">Cannot delete while in insert mode.\n
     Please return to main activity and select pet for deletion.</string>
     <string name="name_required">Pet\'s name is a required field!</string>
-    <string name="breed_required">Pet\'s breed is a required field!</string>
+    <string name="unknown_breed">Unknown Breed</string>
     <string name="max_weight">Maximum weight exceeded! \nPet bears are not allowed.</string>
     <!-- Dialog message when user is leaving editor but hasn't saved changes [CHAR LIMIT=NONE] -->
     <string name="unsaved_changes_dialog_msg">Discard your changes and quit editing?</string>
@@ -61,6 +61,12 @@
     <string name="discard">Discard</string>
     <!-- Dialog button text for the option to keep editing the current pet [CHAR LIMIT=20] -->
     <string name="keep_editing">Keep Editing</string>
+    <string name="warning">Warning!!</string>
+    <string name="delete_pets_warning">This Action will delete pet data.\nThis action
+    cannot be undone.</string>
+    <string name="cancel">cancel</string>
+    <string name="delete">delete</string>
+    <string name="all_pets_deleted">All pets successfully deleted from database.</string>
 
     <!-- Strings for editor activity modes -->
     <string name="insert_mode">Add new pet</string>

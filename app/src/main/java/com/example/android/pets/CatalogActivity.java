@@ -19,12 +19,14 @@ import android.app.LoaderManager;
 import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.CursorLoader;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.Loader;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -103,6 +105,45 @@ public class CatalogActivity extends AppCompatActivity implements LoaderManager.
         }
     }
 
+    // This method will be called to remove all pets from database.
+    private void deleteAllPetData () {
+        int newRowId;
+            // Setup to select pet with provided _ID.
+            newRowId = getContentResolver().delete(PetContract.PetSchema.CONTENT_URI, null, null);
+            if (newRowId == -1) { // Something went wrong
+                Toast.makeText(this, getString(R.string.error_adding_pet), Toast.LENGTH_SHORT).show();
+            } else { // No problems.
+                Toast.makeText(this, getString(R.string.all_pets_deleted), Toast.LENGTH_SHORT).show();
+                }
+    }
+
+    // This method pops up an alert to warn/verify user that ALL pet data will be deleted.
+    private void showDeleteAllPetsDialog () {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle(R.string.warning);
+        builder.setMessage(R.string.delete_pets_warning);
+        builder.setPositiveButton(R.string.delete, new DialogInterface.OnClickListener() {
+            public void onClick (DialogInterface dialog, int id) {
+                // User verified action to delete ALL pet data.
+                deleteAllPetData();
+                if (dialog != null) {
+                    dialog.dismiss();
+                }
+            }
+        });
+        builder.setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() {
+            public void onClick (DialogInterface dialog, int id) {
+                // User clicked to cancel so just quit dialog and stay in activity.
+                if (dialog != null) {
+                    dialog.dismiss();
+                }
+            }
+        });
+        //Create and show the dialog box.
+        AlertDialog alertDialog = builder.create();
+        alertDialog.show();
+    }
+
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu options from the res/menu/menu_catalog.xml file.
@@ -122,7 +163,8 @@ public class CatalogActivity extends AppCompatActivity implements LoaderManager.
                 return true;
             // Respond to a click on the "Delete all entries" menu option
             case R.id.action_delete_all_entries:
-                // Do nothing for now
+                // Call method to alert user before deleting all data.
+                showDeleteAllPetsDialog();
                 return true;
         }
         return super.onOptionsItemSelected(item);
